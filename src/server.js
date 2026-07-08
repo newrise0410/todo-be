@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import { connectDB } from "./db.js";
 import todosRouter from "./routes/todos.js";
+import parseRouter from "./routes/parse.js";
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/todos", todosRouter);
+app.use("/api/parse", parseRouter);
 
 // 에러 핸들러
 app.use((err, req, res, next) => {
