@@ -11,6 +11,19 @@ const todoSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    priority: {
+      type: String,
+      enum: ["low", "medium", "high"],
+      default: "medium",
+    },
+    dueDate: {
+      type: Date,
+      default: null,
+    },
+    order: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     // createdAt, updatedAt 자동 기록
