@@ -4,11 +4,33 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const BASE_URL = process.env.MINIMAX_BASE_URL || "https://api.minimax.io/v1";
 const MODEL = process.env.MINIMAX_MODEL || "MiniMax-M3";
 
-/** LLM 응답 텍스트에서 코드펜스를 제거한다. */
-function stripFences(text) {
-  const trimmed = text.trim();
-  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-  return fenced ? fenced[1].trim() : trimmed;
+/** 추론 블록(<think>…</think>)과 코드펜스를 제거한다. */
+function cleanContent(text) {
+  let s = String(text)
+    .replace(/<think>[\s\S]*?<\/think>/gi, "")
+    .trim();
+  const fenced = s.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (fenced) s = fenced[1].trim();
+  return s;
+}
+
+/** 문자열에서 가장 바깥쪽 JSON 객체/배열 부분만 잘라낸다. */
+function sliceJson(s) {
+  const firstObj = s.indexOf("{");
+  const firstArr = s.indexOf("[");
+  let start;
+  let closeCh;
+  if (firstArr !== -1 && (firstObj === -1 || firstArr < firstObj)) {
+    start = firstArr;
+    closeCh = "]";
+  } else if (firstObj !== -1) {
+    start = firstObj;
+    closeCh = "}";
+  } else {
+    return null;
+  }
+  const end = s.lastIndexOf(closeCh);
+  return end > start ? s.slice(start, end + 1) : null;
 }
 
 /**
@@ -16,11 +38,17 @@ function stripFences(text) {
  * @returns {{title:string, priority:string, dueDate:string|null}[]}
  */
 export function parseContent(content) {
+  const cleaned = cleanContent(content);
   let data;
   try {
-    data = JSON.parse(stripFences(content));
+    data = JSON.parse(cleaned);
   } catch {
-    throw new Error("LLM 응답을 파싱할 수 없습니다");
+    const sliced = sliceJson(cleaned);
+    try {
+      data = JSON.parse(sliced ?? "");
+    } catch {
+      throw new Error("LLM 응답을 파싱할 수 없습니다");
+    }
   }
 
   const list = Array.isArray(data) ? data : data?.todos;

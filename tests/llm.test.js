@@ -44,6 +44,22 @@ test("accepts a bare array", () => {
   ]);
 });
 
+test("strips <think> reasoning blocks before the JSON", () => {
+  const content =
+    '<think>사용자가 두 가지를 말했다. JSON으로 정리하자.</think>\n\n{"todos":[{"title":"면접 준비"},{"title":"장보기"}]}';
+  const result = parseContent(content);
+  assert.deepEqual(
+    result.map((t) => t.title),
+    ["면접 준비", "장보기"],
+  );
+});
+
+test("extracts JSON even with surrounding prose", () => {
+  const content =
+    '정리해드릴게요:\n{"todos":[{"title":"보고서"}]}\n필요하면 말씀하세요.';
+  assert.equal(parseContent(content)[0].title, "보고서");
+});
+
 test("throws on non-JSON content", () => {
   assert.throws(() => parseContent("죄송하지만 이해하지 못했습니다"));
 });
